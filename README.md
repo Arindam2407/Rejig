@@ -5,6 +5,7 @@ REJIG APP
 - Programmatic yield determination
 Created by Arindam Singh
 
+
 -Users will be able to create profiles just like in the Lens protocol - no need for whitelisting with the stipulation that one address can create only one contract.
 -There is no collect functionality.
 -Instead, we have added NFT auctions for posts which creators/owners/sellers can choose to turn on or off (there are two functions - post and postNFT).
