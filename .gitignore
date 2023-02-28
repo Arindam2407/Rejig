@@ -1,0 +1,12 @@
+.env
+
+#Hardhat files
+cache
+artifacts
+node_modules
+/typechain-types
+
+/coverage
+coverage.json
+
+addresses.json
