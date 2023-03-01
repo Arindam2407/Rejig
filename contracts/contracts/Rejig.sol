@@ -232,7 +232,7 @@ AutomationCompatibleInterface, VRFConsumerBaseV2 {
         _safeMint(msg.sender, NFTId);
         _approve(address(this), NFTId);
         _auctionsByProfileByPubCount[msg.sender][_profileById[userToId[msg.sender]].pubCount] = 
-        getAuctionAddress(_startingPrice, _discountRate, address(this), NFTId);
+        getAuctionAddress(_startingPrice, _discountRate, address(this), NFTId, msg.sender);
         if (_tokens.length != 0 && _profileById[userToId[msg.sender]].followerCount > creatorThreshold) {
             for (uint i = 0; i < _tokens.length; i++){
                 IERC20(_tokens[i].tokenAddress).approve(address(this), _tokens[i].noTokens);
@@ -287,7 +287,8 @@ AutomationCompatibleInterface, VRFConsumerBaseV2 {
         require(NFTStatus == DataTypes.NFTState.Open, "Not open");
         require(_profileById[userToId[msg.sender]].approved == true, "Not approved");
         require(bondType <= 3, "Out of bounds");
-        (bool success, ) = _auctionsByProfileByPubCount[_owner][_pubId].delegatecall(abi.encodeWithSignature("buy"));
+        uint value = msg.value;
+        (bool success, ) = _auctionsByProfileByPubCount[_owner][_pubId].call{value: value}(abi.encodeWithSignature("buy"));
         require(success);
         NFTsBought[_owner][_pubId] = true;
 
@@ -299,7 +300,7 @@ AutomationCompatibleInterface, VRFConsumerBaseV2 {
         }
 
         uint balanceOfContract = _auctionsByProfileByPubCount[_owner][_pubId].balance;
-        (bool success2, ) = _auctionsByProfileByPubCount[_owner][_pubId].delegatecall(abi.encodeWithSignature("settlePayments(address,uint)",_owner,shareToOwner));
+        (bool success2, ) = _auctionsByProfileByPubCount[_owner][_pubId].call(abi.encodeWithSignature("settlePayments(uint)",shareToOwner));
         require(success2);
 
         address owner = msg.sender;
@@ -671,10 +672,10 @@ AutomationCompatibleInterface, VRFConsumerBaseV2 {
         }
     }
 
-    function getAuctionAddress(uint _startingPrice, uint _discountRate, address _nft, uint _nftId) internal returns(address) {
-        DutchAuction _contract = new DutchAuction(_startingPrice,_discountRate,_nft,_nftId);
+    function getAuctionAddress(uint _startingPrice, uint _discountRate, address _nft, uint _nftId, address _owner) internal returns(address) {
+        DutchAuction _contract = new DutchAuction(_startingPrice,_discountRate,_nft,_nftId, _owner);
         bytes memory bytecode = type(DutchAuction).creationCode;
-        bytecode = abi.encodePacked(bytecode,abi.encode(_startingPrice, _discountRate, _nft, _nftId));
+        bytecode = abi.encodePacked(bytecode,abi.encode(_startingPrice, _discountRate, _nft, _nftId, _owner));
         bytes32 hash = keccak256(abi.encodePacked(bytes1(0xff), address(this), keccak256(bytecode)));
         return address(uint160(uint(hash)));
     }
@@ -855,8 +856,10 @@ contract DutchAuction {
     uint public immutable startAt;
     uint public immutable expiresAt;
     uint public immutable discountRate;
+    address payable public immutable owner;
 
-    constructor(uint _startingPrice, uint _discountRate, address _nft, uint _nftId) {
+    constructor(uint _startingPrice, uint _discountRate, address _nft, uint _nftId, address _owner) {
+        owner = payable(_owner);
         seller = payable(msg.sender);
         startingPrice = _startingPrice;
         startAt = block.timestamp;
@@ -881,14 +884,14 @@ contract DutchAuction {
         uint price = getPrice();
         require(msg.value >= price, "ETH < price");
 
-        nft.transferFrom(seller, msg.sender, nftId);
+        nft.transferFrom(seller, owner, nftId);
         uint refund = msg.value - price;
         if (refund > 0) {
-            payable(msg.sender).transfer(refund);
+            payable(owner).transfer(refund);
         }
     }
 
-    function settlePayments(address _owner, uint shareToOwner) external {
+    function settlePayments(uint shareToOwner) external {
         uint toOwner = uint((address(this).balance * shareToOwner * 10**4)/10**6);
         uint value1 = toOwner;
         toOwner = 0;
@@ -897,7 +900,7 @@ contract DutchAuction {
         uint value2 = toProtocol;
         toProtocol = 0;
 
-        (bool sent1, ) = payable(_owner).call{value: value1}("");
+        (bool sent1, ) = payable(owner).call{value: value1}("");
         require(sent1, "Failed to send Ether");
 
         (bool sent2, ) = payable(seller).call{value: value2}("");
