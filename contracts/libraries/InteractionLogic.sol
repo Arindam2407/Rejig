@@ -3,12 +3,15 @@
 pragma solidity 0.8.10;
 
 import {FollowNFTProxy} from '../upgradeability/FollowNFTProxy.sol';
+import {TransactionNFTProxy} from '../upgradeability/TransactionNFTProxy.sol';
 import {DataTypes} from './DataTypes.sol';
 import {Errors} from './Errors.sol';
 import {Events} from './Events.sol';
 import {Constants} from './Constants.sol';
 import {IFollowNFT} from '../interfaces/IFollowNFT.sol';
 import {IFollowModule} from '../interfaces/IFollowModule.sol';
+import {ITransactionNFT} from '../interfaces/ITransactionNFT.sol';
+import {ITransactionModule} from '../interfaces/ITransactionModule.sol';
 import {Clones} from '@openzeppelin/contracts/proxy/Clones.sol';
 import {Strings} from '@openzeppelin/contracts/utils/Strings.sol';
 
@@ -92,4 +95,33 @@ library InteractionLogic {
         return followNFT;
     }
 
+    function transact(
+        address seller,
+        address hub,
+        uint nftId,
+        mapping(uint256 => DataTypes.ProfileStruct) storage _profileById,
+        mapping(address => uint256) storage userToId
+    ) external {
+            address transactionNFT = _profileById[userToId[seller]].transactionNFT;
+
+            if (transactionNFT == address(0)) {
+                transactionNFT = _deployTransactionNFT(userToId[seller]);
+                _profileById[userToId[seller]].transactionNFT = transactionNFT;
+            }
+
+            ITransactionNFT(transactionNFT).mint(hub,nftId);
+    }
+
+        function _deployTransactionNFT(uint256 profileId) private returns (address) {
+        bytes memory functionData = abi.encodeWithSelector(
+            ITransactionNFT.initialize.selector,
+            profileId
+        );
+        address transactionNFT = address(new TransactionNFTProxy(functionData));
+
+        return transactionNFT;
+    }
+
+
 }
+
