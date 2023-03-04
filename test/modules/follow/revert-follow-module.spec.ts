@@ -13,6 +13,7 @@ import {
   revertFollowModule,
   userAddress,
   userTwo,
+  MOCK_TRANSACTION_NFT_URI
 } from '../../__setup.spec';
 
 makeSuiteCleanRoom('Revert Follow Module', function () {
@@ -25,6 +26,8 @@ makeSuiteCleanRoom('Revert Follow Module', function () {
         followModule: ZERO_ADDRESS,
         followModuleInitData: [],
         followNFTURI: MOCK_FOLLOW_NFT_URI,
+        transactionModule: ZERO_ADDRESS,
+        transactionNFTURI: MOCK_TRANSACTION_NFT_URI
       })
     ).to.not.be.reverted;
   });
