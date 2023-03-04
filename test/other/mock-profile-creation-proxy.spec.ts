@@ -10,6 +10,7 @@ import {
   rejig,
   makeSuiteCleanRoom,
   MOCK_FOLLOW_NFT_URI,
+  MOCK_TRANSACTION_NFT_URI,
   MOCK_PROFILE_URI,
   user,
   userAddress,
@@ -41,6 +42,8 @@ makeSuiteCleanRoom('Mock Profile Creation Proxy', function () {
           followModule: ZERO_ADDRESS,
           followModuleInitData: [],
           followNFTURI: MOCK_FOLLOW_NFT_URI,
+          transactionModule: ZERO_ADDRESS,
+            transactionNFTURI: MOCK_TRANSACTION_NFT_URI
         })
       ).to.be.revertedWith(ERRORS.INVALID_HANDLE_LENGTH);
     });
@@ -54,6 +57,8 @@ makeSuiteCleanRoom('Mock Profile Creation Proxy', function () {
           followModule: ZERO_ADDRESS,
           followModuleInitData: [],
           followNFTURI: MOCK_FOLLOW_NFT_URI,
+          transactionModule: ZERO_ADDRESS,
+            transactionNFTURI: MOCK_TRANSACTION_NFT_URI
         })
       ).to.be.revertedWith(ERRORS.HANDLE_CONTAINS_INVALID_CHARACTERS);
     });
@@ -67,6 +72,8 @@ makeSuiteCleanRoom('Mock Profile Creation Proxy', function () {
           followModule: ZERO_ADDRESS,
           followModuleInitData: [],
           followNFTURI: MOCK_FOLLOW_NFT_URI,
+          transactionModule: ZERO_ADDRESS,
+            transactionNFTURI: MOCK_TRANSACTION_NFT_URI
         })
       ).to.be.revertedWith(ERRORS.HANDLE_FIRST_CHARACTER_INVALID);
 
@@ -78,6 +85,8 @@ makeSuiteCleanRoom('Mock Profile Creation Proxy', function () {
           followModule: ZERO_ADDRESS,
           followModuleInitData: [],
           followNFTURI: MOCK_FOLLOW_NFT_URI,
+          transactionModule: ZERO_ADDRESS,
+            transactionNFTURI: MOCK_TRANSACTION_NFT_URI
         })
       ).to.be.revertedWith(ERRORS.HANDLE_FIRST_CHARACTER_INVALID);
 
@@ -89,6 +98,8 @@ makeSuiteCleanRoom('Mock Profile Creation Proxy', function () {
           followModule: ZERO_ADDRESS,
           followModuleInitData: [],
           followNFTURI: MOCK_FOLLOW_NFT_URI,
+          transactionModule: ZERO_ADDRESS,
+            transactionNFTURI: MOCK_TRANSACTION_NFT_URI
         })
       ).to.be.revertedWith(ERRORS.HANDLE_FIRST_CHARACTER_INVALID);
     });
