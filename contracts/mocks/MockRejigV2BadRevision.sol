@@ -8,6 +8,7 @@ import {DataTypes} from '../libraries/DataTypes.sol';
 import {Errors} from '../libraries/Errors.sol';
 import {PublishingLogic} from '../libraries/PublishingLogic.sol';
 import {InteractionLogic} from '../libraries/InteractionLogic.sol';
+import {TransactionInteractionLogic} from '../libraries/TransactionInteractionLogic.sol';
 import {RejigNFTBase} from '../contracts/base/RejigNFTBase.sol';
 import {RejigMultiState} from '../contracts/base/RejigMultiState.sol';
 import {VersionedInitializable} from '../upgradeability/VersionedInitializable.sol';
