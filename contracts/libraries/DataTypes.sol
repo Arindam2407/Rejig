@@ -70,9 +70,12 @@ library DataTypes {
         bool active;
         address followModule;
         address followNFT;
+        address transactionModule;
+        address transactionNFT;
         string handle;
         string imageURI;
         string followNFTURI;
+        string transactionNFTURI;
     }
 
     /**
@@ -111,6 +114,8 @@ library DataTypes {
         address followModule;
         bytes followModuleInitData;
         string followNFTURI;
+        address transactionModule;
+        string transactionNFTURI;
     }
 
     /**
@@ -169,17 +174,6 @@ library DataTypes {
     }
 
     /**
-     * @notice A struct containing the tokens and numbers of them endorsed in NFT auctions.
-     *
-     * @param tokenAddress The address of the ERC-20 token endorsed.
-     * @param noTokens The number of tokens endorsed for the particular token.
-     */
-    struct TokenandNumber{
-        address tokenAddress;
-        uint noTokens;
-    }
-
-    /**
      * @notice A struct specifying bond details.
      *
      * @param owner The address of the owner of the bond.
@@ -196,5 +190,14 @@ library DataTypes {
         uint yield;
         uint maturesInNDays;
         int followerDifference;
+    }
+
+    struct EndorsedTokenData {
+        address token1;
+        uint noTokens1;
+        address token2;
+        uint noTokens2;
+        address token3;
+        uint noTokens3;
     }
 }
