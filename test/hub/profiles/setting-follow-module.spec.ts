@@ -12,6 +12,7 @@ import {
   MOCK_FOLLOW_NFT_URI,
   MOCK_PROFILE_HANDLE,
   MOCK_PROFILE_URI,
+  MOCK_TRANSACTION_NFT_URI,
   testWallet,
   userAddress,
   userTwo,
@@ -28,6 +29,8 @@ makeSuiteCleanRoom('Setting Follow Module', function () {
           followModule: ZERO_ADDRESS,
           followModuleInitData: [],
           followNFTURI: MOCK_FOLLOW_NFT_URI,
+          transactionModule: ZERO_ADDRESS,
+          transactionNFTURI: MOCK_TRANSACTION_NFT_URI
         })
       ).to.not.be.reverted;
     });
@@ -71,6 +74,8 @@ makeSuiteCleanRoom('Setting Follow Module', function () {
           followModule: ZERO_ADDRESS,
           followModuleInitData: [],
           followNFTURI: MOCK_FOLLOW_NFT_URI,
+          transactionModule: ZERO_ADDRESS,
+          transactionNFTURI: MOCK_TRANSACTION_NFT_URI
         })
       ).to.not.be.reverted;
     });
