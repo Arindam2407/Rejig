@@ -12,13 +12,14 @@ import {
   Currency__factory,
   Events,
   Events__factory,
-  ERC20,
-  ERC20__factory,
+  RejigERC20,
+  RejigERC20__factory,
   FeeFollowModule,
   FeeFollowModule__factory,
   FollowerOnlyReferenceModule,
   FollowerOnlyReferenceModule__factory,
   FollowNFT__factory,
+  TransactionNFT__factory,
   Helper,
   Helper__factory,
   InteractionLogic__factory,
@@ -38,9 +39,9 @@ import {
   ProfileFollowModule,
   ProfileFollowModule__factory,
   FollowNFT,
+  TransactionNFT,
   RevertFollowModule,
   RevertFollowModule__factory,
-  PostNFTTokenURILogic,
   PostNFTTokenURILogic__factory,
   VRFCoordinatorV2Mock,
   VRFCoordinatorV2Mock__factory
@@ -79,6 +80,10 @@ export const MOCK_FOLLOW_NFT_URI =
   'https://ipfs.fleek.co/ipfs/ghostplantghostplantghostplantghostplantghostplantghostplan';
 export const MOCK_FOLLOW_NFT_URI_2 =
   'https://ipfs.fleek.co/ipfs/2ghostplantghostplantghostplantghostplantghostplantghostplan';
+export const MOCK_TRANSACTION_NFT_URI =
+  'https://ipfs.fleek.co/ipfs/txghostplantghostplantghostplantghostplantghostplantghostplan';
+export const MOCK_TRANSACTION_NFT_URI_2 =
+  'https://ipfs.fleek.co/ipfs/tx2ghostplantghostplantghostplantghostplantghostplantghostplan';
 
 export let accounts: Signer[];
 export let deployer: Signer;
@@ -107,6 +112,8 @@ export let treasuryAddress: string;
 export let testWallet: Wallet;
 export let rejigImpl: Rejig;
 export let rejig: Rejig;
+export let rejigERC20: RejigERC20;
+export let rejigERC20Address: string;
 export let currency: Currency;
 export let abiCoder: AbiCoder;
 export let mockModuleData: BytesLike;
@@ -116,6 +123,7 @@ export let moduleGlobals: ModuleGlobals;
 export let helper: Helper;
 export let rejigPeriphery: RejigPeriphery;
 export let followNFTImpl: FollowNFT;
+export let transactionNFTImpl: TransactionNFT;
 export let vRFCoordinatorV2Mock: VRFCoordinatorV2Mock;
 
 /* Modules */
@@ -179,6 +187,7 @@ before(async function () {
     treasuryAddress,
     TREASURY_FEE_BPS
   );
+
   const publishingLogic = await new PublishingLogic__factory(deployer).deploy();
   const interactionLogic = await new InteractionLogic__factory(deployer).deploy();
   const profileTokenURILogic = await new ProfileTokenURILogic__factory(deployer).deploy();
@@ -199,14 +208,16 @@ before(async function () {
   const nonce = await deployer.getTransactionCount();
   // nonce + 0 is follow NFT impl
   // nonce + 1 is impl
-  // nonce + 2 is hub proxy
+  // nonce + 2 is tx impl
+  // nonce + 3 is hub proxy
 
-  const hubProxyAddress = computeContractAddress(deployerAddress, nonce + 2); //'0x' + keccak256(RLP.encode([deployerAddress, hubProxyNonce])).substr(26);
+  const hubProxyAddress = computeContractAddress(deployerAddress, nonce + 3); //'0x' + keccak256(RLP.encode([deployerAddress, hubProxyNonce])).substr(26);
 
   followNFTImpl = await new FollowNFT__factory(deployer).deploy(hubProxyAddress);
+  transactionNFTImpl = await new TransactionNFT__factory(deployer).deploy(hubProxyAddress);
 
   rejigImpl = await new Rejig__factory(hubLibs, deployer).deploy(vRFCoordinatorV2Mock.address,1,GAS_LANE,CALLBACK_GAS_LIMIT,
-    followNFTImpl.address
+    followNFTImpl.address, transactionNFTImpl.address
   );
 
   let data = rejigImpl.interface.encodeFunctionData('initialize', [
@@ -256,4 +267,7 @@ before(async function () {
 
   // Event library deployment is only needed for testing and is not reproduced in the live environment
   eventsLib = await new Events__factory(deployer).deploy();
+
+  const rejigERC20 = await new RejigERC20__factory(user).deploy(rejig.address,1000000);
+  rejigERC20Address = await rejigERC20.address;
 });
