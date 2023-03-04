@@ -24,10 +24,12 @@ library Errors {
     error HandleFirstCharInvalid();
     error ProfileImageURILengthInvalid();
     error CallerNotFollowNFT();
+    error CallerNotTransactionNFT();
     error BlockNumberInvalid();
     error ArrayMismatch();
     error CannotCommentOnSelf();
     error InvalidParameter();
+    error NotEnoughEth();
 
     // Module Errors
     error InitParamsInvalid();
