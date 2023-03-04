@@ -34,6 +34,7 @@ import {
   abiCoder,
   feeFollowModule as feeFollowModuleImported,
   currency,
+  MOCK_TRANSACTION_NFT_URI,
 } from '../__setup.spec';
 import { formatEther } from 'ethers/lib/utils';
 
@@ -108,6 +109,8 @@ makeSuiteCleanRoom('AccessControlV2', function () {
             followModule: ZERO_ADDRESS,
             followModuleInitData: [],
             followNFTURI: MOCK_FOLLOW_NFT_URI,
+            transactionModule: ZERO_ADDRESS,
+            transactionNFTURI : MOCK_TRANSACTION_NFT_URI
           })
         : rejig.createProfile({
             to: userAddress,
@@ -116,6 +119,8 @@ makeSuiteCleanRoom('AccessControlV2', function () {
             followModule: ZERO_ADDRESS,
             followModuleInitData: [],
             followNFTURI: MOCK_FOLLOW_NFT_URI,
+            transactionModule: ZERO_ADDRESS,
+            transactionNFTURI : MOCK_TRANSACTION_NFT_URI
           })
     );
 
