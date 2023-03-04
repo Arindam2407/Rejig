@@ -254,6 +254,14 @@ library Events {
         uint256 timestamp
     );
 
+    event TransactionNFTTransferred(
+        uint256 indexed profileId,
+        uint256 indexed followNFTId,
+        address from,
+        address to,
+        uint256 timestamp
+    );
+
     // Follow NFT-Specific
 
     /**
