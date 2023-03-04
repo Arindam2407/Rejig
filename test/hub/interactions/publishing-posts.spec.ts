@@ -11,6 +11,7 @@ import {
   accounts,
   governance,
   rejig,
+  rejigERC20Address,
   makeSuiteCleanRoom,
   mockModuleData,
   mockReferenceModule,
@@ -37,7 +38,9 @@ import {
   userFifteen,
   abiCoder,
   userTwoAddress,
+  MOCK_TRANSACTION_NFT_URI
 } from '../../__setup.spec';
+import { zeroPad } from 'ethers/lib/utils';
 
 let ac;
 
@@ -52,6 +55,8 @@ makeSuiteCleanRoom('Publishing Posts', function () {
           followModule: ZERO_ADDRESS,
           followModuleInitData: [],
           followNFTURI: MOCK_FOLLOW_NFT_URI,
+          transactionModule: ZERO_ADDRESS,
+          transactionNFTURI: MOCK_TRANSACTION_NFT_URI
         })
       ).to.not.be.reverted;
     });
@@ -92,6 +97,8 @@ makeSuiteCleanRoom('Publishing Posts', function () {
             followModule: ZERO_ADDRESS,
             followModuleInitData: [],
             followNFTURI: MOCK_FOLLOW_NFT_URI,
+            transactionModule: ZERO_ADDRESS,
+            transactionNFTURI: MOCK_TRANSACTION_NFT_URI
           })
         ).to.not.be.reverted;
         await expect(
@@ -102,6 +109,8 @@ makeSuiteCleanRoom('Publishing Posts', function () {
             followModule: ZERO_ADDRESS,
             followModuleInitData: [],
             followNFTURI: MOCK_FOLLOW_NFT_URI,
+            transactionModule: ZERO_ADDRESS,
+            transactionNFTURI: MOCK_TRANSACTION_NFT_URI
           })
         ).to.not.be.reverted;
 
@@ -173,7 +182,14 @@ makeSuiteCleanRoom('Publishing Posts', function () {
             contentURI: MOCK_URI,
             referenceModule: ZERO_ADDRESS,
             referenceModuleInitData: [],
-        }, ethers.utils.parseEther('0.05'), ethers.utils.parseEther('0.0000000001'),[])).to.not.be.reverted;
+        }, ethers.utils.parseEther('0.05'), ethers.utils.parseEther('0.0000000001'),
+        { token1: rejigERC20Address,
+          noTokens1: 1000000,
+          token2: ZERO_ADDRESS,
+          noTokens2: 0,
+          token3: ZERO_ADDRESS,
+          noTokens3: 0
+        })).to.not.be.reverted;
       });
     });
   });
