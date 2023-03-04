@@ -21,6 +21,7 @@ import {
   userAddress,
   userTwo,
   userTwoAddress,
+  MOCK_TRANSACTION_NFT_URI,
 } from '../../__setup.spec';
 
 makeSuiteCleanRoom('Publishing Comments', function () {
@@ -34,6 +35,8 @@ makeSuiteCleanRoom('Publishing Comments', function () {
           followModule: ZERO_ADDRESS,
           followModuleInitData: [],
           followNFTURI: MOCK_FOLLOW_NFT_URI,
+          transactionModule: ZERO_ADDRESS,
+          transactionNFTURI: MOCK_TRANSACTION_NFT_URI
         })
       ).to.not.be.reverted;
 
@@ -135,6 +138,8 @@ makeSuiteCleanRoom('Publishing Comments', function () {
             followModule: ZERO_ADDRESS,
             followModuleInitData: [],
             followNFTURI: MOCK_FOLLOW_NFT_URI,
+            transactionModule: ZERO_ADDRESS,
+            transactionNFTURI: MOCK_TRANSACTION_NFT_URI
           })
         ).to.not.be.reverted;
 
