@@ -23,6 +23,7 @@ import {
   mockFollowModule,
   mockModuleData,
   MOCK_FOLLOW_NFT_URI,
+  MOCK_TRANSACTION_NFT_URI,
   MOCK_PROFILE_HANDLE,
   MOCK_PROFILE_URI,
   MOCK_URI,
@@ -64,6 +65,8 @@ makeSuiteCleanRoom('Misc', function () {
           followModule: ZERO_ADDRESS,
           followModuleInitData: [],
           followNFTURI: MOCK_FOLLOW_NFT_URI,
+          transactionModule: ZERO_ADDRESS,
+          transactionNFTURI: MOCK_TRANSACTION_NFT_URI
         })
       ).to.not.be.reverted;
     });
@@ -379,6 +382,8 @@ makeSuiteCleanRoom('Misc', function () {
           followModule: approvalFollowModule.address,
           followModuleInitData: [],
           followNFTURI: MOCK_FOLLOW_NFT_URI,
+          transactionModule: ZERO_ADDRESS,
+            transactionNFTURI: MOCK_TRANSACTION_NFT_URI
         })
       ).to.not.be.reverted;
     });
@@ -505,6 +510,8 @@ makeSuiteCleanRoom('Misc', function () {
           followModule: ZERO_ADDRESS,
           followModuleInitData: [],
           followNFTURI: MOCK_FOLLOW_NFT_URI,
+          transactionModule: ZERO_ADDRESS,
+            transactionNFTURI: MOCK_TRANSACTION_NFT_URI
         })
       ).to.not.be.reverted;
 
@@ -579,6 +586,8 @@ makeSuiteCleanRoom('Misc', function () {
             followModule: ZERO_ADDRESS,
             followModuleInitData: [],
             followNFTURI: MOCK_FOLLOW_NFT_URI,
+            transactionModule: ZERO_ADDRESS,
+            transactionNFTURI: MOCK_TRANSACTION_NFT_URI
           })
         ).to.not.be.reverted;
         await expect(rejig.connect(userTwo).follow([FIRST_PROFILE_ID], [[]])).to.not.be.reverted;
@@ -671,6 +680,8 @@ makeSuiteCleanRoom('Misc', function () {
               followModule: ZERO_ADDRESS,
               followModuleInitData: [],
               followNFTURI: MOCK_FOLLOW_NFT_URI,
+              transactionModule: ZERO_ADDRESS,
+            transactionNFTURI: MOCK_TRANSACTION_NFT_URI
             })
           ).to.not.be.reverted;
         });
@@ -736,6 +747,8 @@ makeSuiteCleanRoom('Misc', function () {
               followModule: ZERO_ADDRESS,
               followModuleInitData: [],
               followNFTURI: MOCK_FOLLOW_NFT_URI,
+              transactionModule: ZERO_ADDRESS,
+            transactionNFTURI: MOCK_TRANSACTION_NFT_URI
             })
           ).to.not.be.reverted;
         });
