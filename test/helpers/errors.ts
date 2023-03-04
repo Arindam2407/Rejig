@@ -32,6 +32,7 @@ export const ERRORS = {
   PAUSED: 'Paused()',
   PUBLISHING_PAUSED: 'PublishingPaused()',
 
+  NOT_ENOUGH_ETH: 'Not Enough ETH',
   ERC721_NOT_OWN: 'ERC721: transfer of token that is not own',
   ERC721_TRANSFER_NOT_OWNER_OR_APPROVED: 'ERC721: transfer caller is not owner nor approved',
   ERC721_QUERY_FOR_NONEXISTENT_TOKEN: 'ERC721: owner query for nonexistent token',
