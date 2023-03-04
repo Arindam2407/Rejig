@@ -20,6 +20,7 @@ import {
   rejig,
   makeSuiteCleanRoom,
   MOCK_FOLLOW_NFT_URI,
+  MOCK_TRANSACTION_NFT_URI,
   MOCK_PROFILE_HANDLE,
   MOCK_PROFILE_URI,
   user,
@@ -100,6 +101,8 @@ makeSuiteCleanRoom('Upgradeability', function () {
         followModule: ZERO_ADDRESS,
         followModuleInitData: [],
         followNFTURI: MOCK_FOLLOW_NFT_URI,
+        transactionModule: ZERO_ADDRESS,
+            transactionNFTURI: MOCK_TRANSACTION_NFT_URI
       });
     });
 
