@@ -18,7 +18,6 @@ abstract contract RejigStorage {
     mapping(bytes32 => uint256) internal _profileIdByHandleHash;
     mapping(uint256 => DataTypes.ProfileStruct) internal _profileById;
     mapping(uint256 => mapping(uint256 => DataTypes.PublicationStruct)) internal _pubByIdByProfile;
-    mapping(address => mapping(address => mapping(address => uint))) internal _lastApproved;
     mapping(uint256 => DataTypes.Bond[]) internal _bondsById;
     mapping(bytes => int) internal _followerDifferenceByEncodedBondID;
     mapping(address=>uint) internal userToId;
@@ -27,7 +26,7 @@ abstract contract RejigStorage {
     mapping(address=>string[]) public userToPosts;
     mapping(address=>mapping(uint=>address)) public _auctionsByProfileByPubCount;
     mapping(address=>mapping(uint=>bool)) public NFTsBought;
-    mapping(address=>mapping(uint=>DataTypes.TokenandNumber[])) public tokensEndorsed;
+    mapping(address=>mapping(uint=>DataTypes.EndorsedTokenData)) public tokensEndorsed;
     mapping(address=>uint) public bondCounter;
     
     bytes[] public bondBytes; 
@@ -36,4 +35,5 @@ abstract contract RejigStorage {
     address internal _governance;
     address internal _emergencyAdmin;
 }
+
 
