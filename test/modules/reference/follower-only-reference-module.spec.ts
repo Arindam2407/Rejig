@@ -20,6 +20,7 @@ import {
   userTwo,
   userTwoAddress,
   abiCoder,
+  MOCK_TRANSACTION_NFT_URI
 } from '../../__setup.spec';
 
 makeSuiteCleanRoom('Follower Only Reference Module', function () {
@@ -34,6 +35,8 @@ makeSuiteCleanRoom('Follower Only Reference Module', function () {
         followModule: ZERO_ADDRESS,
         followModuleInitData: [],
         followNFTURI: MOCK_FOLLOW_NFT_URI,
+        transactionModule: ZERO_ADDRESS,
+        transactionNFTURI: MOCK_TRANSACTION_NFT_URI
       })
     ).to.not.be.reverted;
     await expect(
@@ -44,6 +47,8 @@ makeSuiteCleanRoom('Follower Only Reference Module', function () {
         followModule: ZERO_ADDRESS,
         followModuleInitData: [],
         followNFTURI: MOCK_FOLLOW_NFT_URI,
+        transactionModule: ZERO_ADDRESS,
+        transactionNFTURI: MOCK_TRANSACTION_NFT_URI
       })
     ).to.not.be.reverted;
     await expect(
