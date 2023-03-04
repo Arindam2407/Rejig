@@ -24,6 +24,7 @@ import {
   userAddress,
   userTwo,
   userTwoAddress,
+  MOCK_TRANSACTION_NFT_URI,
 } from '../../__setup.spec';
 
 makeSuiteCleanRoom('Fee Follow Module', function () {
@@ -51,6 +52,8 @@ makeSuiteCleanRoom('Fee Follow Module', function () {
             followModule: feeFollowModule.address,
             followModuleInitData: followModuleInitData,
             followNFTURI: MOCK_FOLLOW_NFT_URI,
+            transactionModule: ZERO_ADDRESS,
+            transactionNFTURI: MOCK_TRANSACTION_NFT_URI
           })
         ).to.be.revertedWith(ERRORS.INIT_PARAMS_INVALID);
       });
@@ -69,6 +72,8 @@ makeSuiteCleanRoom('Fee Follow Module', function () {
             followModule: feeFollowModule.address,
             followModuleInitData: followModuleInitData,
             followNFTURI: MOCK_FOLLOW_NFT_URI,
+            transactionModule: ZERO_ADDRESS,
+            transactionNFTURI: MOCK_TRANSACTION_NFT_URI
           })
         ).to.be.revertedWith(ERRORS.INIT_PARAMS_INVALID);
       });
@@ -87,6 +92,8 @@ makeSuiteCleanRoom('Fee Follow Module', function () {
             followModule: feeFollowModule.address,
             followModuleInitData: followModuleInitData,
             followNFTURI: MOCK_FOLLOW_NFT_URI,
+            transactionModule: ZERO_ADDRESS,
+            transactionNFTURI: MOCK_TRANSACTION_NFT_URI
           })
         ).to.be.revertedWith(ERRORS.INIT_PARAMS_INVALID);
       });
@@ -106,6 +113,8 @@ makeSuiteCleanRoom('Fee Follow Module', function () {
             followModule: feeFollowModule.address,
             followModuleInitData: followModuleInitData,
             followNFTURI: MOCK_FOLLOW_NFT_URI,
+            transactionModule: ZERO_ADDRESS,
+            transactionNFTURI: MOCK_TRANSACTION_NFT_URI
           })
         ).to.not.be.reverted;
       });
@@ -190,6 +199,8 @@ makeSuiteCleanRoom('Fee Follow Module', function () {
         followModule: feeFollowModule.address,
         followModuleInitData: followModuleInitData,
         followNFTURI: MOCK_FOLLOW_NFT_URI,
+        transactionModule: ZERO_ADDRESS,
+        transactionNFTURI: MOCK_TRANSACTION_NFT_URI
       });
 
       const receipt = await waitForTx(tx);
@@ -218,6 +229,8 @@ makeSuiteCleanRoom('Fee Follow Module', function () {
           followModule: ZERO_ADDRESS,
           followModuleInitData: [],
           followNFTURI: MOCK_FOLLOW_NFT_URI,
+          transactionModule: ZERO_ADDRESS,
+          transactionNFTURI: MOCK_TRANSACTION_NFT_URI
         })
       ).to.not.be.reverted;
 
@@ -255,6 +268,8 @@ makeSuiteCleanRoom('Fee Follow Module', function () {
           followModule: feeFollowModule.address,
           followModuleInitData: followModuleInitData,
           followNFTURI: MOCK_FOLLOW_NFT_URI,
+          transactionModule: ZERO_ADDRESS,
+          transactionNFTURI: MOCK_TRANSACTION_NFT_URI
         })
       ).to.not.be.reverted;
 
@@ -277,6 +292,8 @@ makeSuiteCleanRoom('Fee Follow Module', function () {
           followModule: feeFollowModule.address,
           followModuleInitData: followModuleInitData,
           followNFTURI: MOCK_FOLLOW_NFT_URI,
+          transactionModule: ZERO_ADDRESS,
+          transactionNFTURI: MOCK_TRANSACTION_NFT_URI
         })
       ).to.not.be.reverted;
 
@@ -316,6 +333,8 @@ makeSuiteCleanRoom('Fee Follow Module', function () {
           followModule: feeFollowModule.address,
           followModuleInitData: followModuleInitData,
           followNFTURI: MOCK_FOLLOW_NFT_URI,
+          transactionModule: ZERO_ADDRESS,
+          transactionNFTURI: MOCK_TRANSACTION_NFT_URI
         })
       ).to.not.be.reverted;
 
