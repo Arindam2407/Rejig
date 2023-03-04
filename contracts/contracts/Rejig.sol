@@ -2,6 +2,10 @@
 pragma solidity 0.8.10;
 
 import {IRejig} from '../interfaces/IRejig.sol';
+import {ITransactionNFT} from '../interfaces/ITransactionNFT.sol';
+import {TransactionNFT} from './TransactionNFT.sol';
+import {IDutchAuction} from '../interfaces/IDutchAuction.sol';
+import './DutchAuction.sol';
 import {Events} from '../libraries/Events.sol';
 import {Constants} from '../libraries/Constants.sol';
 import {DataTypes} from '../libraries/DataTypes.sol';
@@ -16,6 +20,9 @@ import {RejigMultiState} from './base/RejigMultiState.sol';
 import {RejigStorage} from './storage/RejigStorage.sol';
 import {VersionedInitializable} from '../upgradeability/VersionedInitializable.sol';
 import {IERC721Enumerable} from '@openzeppelin/contracts/token/ERC721/extensions/IERC721Enumerable.sol';
+import {RejigERC20} from '../helpers/RejigERC20.sol';
+import {ERC20} from "@openzeppelin/contracts/token/ERC20/ERC20.sol";
+import {ERC721} from "@openzeppelin/contracts/token/ERC721/ERC721.sol";
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import {IERC721} from "@openzeppelin/contracts/token/ERC721/IERC721.sol";
 
@@ -40,6 +47,7 @@ AutomationCompatibleInterface, VRFConsumerBaseV2 {
 
     uint256 internal constant REVISION = 1;
     address internal immutable FOLLOW_NFT_IMPL;
+    address internal immutable TRANSACTION_NFT_IMPL;
 
     VRFCoordinatorV2Interface private immutable i_vrfCoordinator;
     uint64 private immutable i_subscriptionId;
@@ -89,7 +97,7 @@ AutomationCompatibleInterface, VRFConsumerBaseV2 {
     constructor(address vrfCoordinatorV2,
         uint64 subscriptionId,
         bytes32 gasLane,
-        uint32 callbackGasLimit,address followNFTImpl) VRFConsumerBaseV2(vrfCoordinatorV2){
+        uint32 callbackGasLimit,address followNFTImpl,address transactionNFTImpl) VRFConsumerBaseV2(vrfCoordinatorV2){
         i_vrfCoordinator = VRFCoordinatorV2Interface(vrfCoordinatorV2);
         i_gasLane = gasLane;
         i_subscriptionId = subscriptionId;
@@ -103,6 +111,9 @@ AutomationCompatibleInterface, VRFConsumerBaseV2 {
 
         if (followNFTImpl == address(0)) revert Errors.InitParamsInvalid();
         FOLLOW_NFT_IMPL = followNFTImpl;
+
+        if (transactionNFTImpl == address(0)) revert Errors.InitParamsInvalid();
+        TRANSACTION_NFT_IMPL = transactionNFTImpl;
     }
 
     /// @inheritdoc IRejig
@@ -129,6 +140,7 @@ AutomationCompatibleInterface, VRFConsumerBaseV2 {
         returns (uint256)
     {
         require(vars.to == msg.sender);
+        require(vars.transactionModule == address(0), "Invalid Profile Creation");
         unchecked {
             uint256 profileId = ++_profileCounter;
             userToId[msg.sender] = _profileCounter;
@@ -166,6 +178,18 @@ AutomationCompatibleInterface, VRFConsumerBaseV2 {
         address expectedFollowNFT = _profileById[profileId].followNFT;
         if (msg.sender != expectedFollowNFT) revert Errors.CallerNotFollowNFT();
         emit Events.FollowNFTTransferred(profileId, followNFTId, from, to, block.timestamp);
+    }
+
+    /// @inheritdoc IRejig
+    function emitTransactionNFTTransferEvent(
+        uint256 profileId,
+        uint256 transactionNFTId,
+        address from,
+        address to
+    ) external override {
+        address expectedTransactionNFT = _profileById[profileId].transactionNFT;
+        if (msg.sender != expectedTransactionNFT) revert Errors.CallerNotTransactionNFT();
+        emit Events.TransactionNFTTransferred(profileId, transactionNFTId, from, to, block.timestamp);
     }
 
     /// ***********************
@@ -217,28 +241,39 @@ AutomationCompatibleInterface, VRFConsumerBaseV2 {
     function postNFT(DataTypes.PostData calldata vars, 
                   uint _startingPrice, 
                   uint _discountRate, 
-                  DataTypes.TokenandNumber[] memory _tokens) 
+                  DataTypes.EndorsedTokenData calldata _tokens) 
                   external 
                   override
                   whenPublishingEnabled
                   returns (uint256) {
+
         require(NFTStatus == DataTypes.NFTState.Open, "Not open");
         require(_profileById[userToId[msg.sender]].followerCount > creatorThreshold, "Not enough followers");
-        require(_tokens.length <= Constants.MAX_TOKENS_ENDORSED, "Too many tokens");
         _validateCallerIsProfileOwnerOrDispatcher(vars.profileId);
-        _profileById[userToId[msg.sender]].NFTCount++;
+
         uint256 NFTId = uint256(keccak256(abi.encode(userToId[msg.sender],_profileById[userToId[msg.sender]].NFTCount)));
-        _pubByIdByProfile[userToId[msg.sender]][_profileById[userToId[msg.sender]].pubCount+1].associatedNFTId = NFTId;
-        _safeMint(msg.sender, NFTId);
-        _approve(address(this), NFTId);
+        _pubByIdByProfile[userToId[msg.sender]][_profileById[userToId[msg.sender]].pubCount].associatedNFTId = NFTId;
+
+        InteractionLogic.transact(msg.sender, address(this), NFTId, _profileById, userToId);
+
+        address NFT = _profileById[userToId[msg.sender]].transactionNFT;
+
         _auctionsByProfileByPubCount[msg.sender][_profileById[userToId[msg.sender]].pubCount] = 
-        getAuctionAddress(_startingPrice, _discountRate, address(this), NFTId, msg.sender);
-        if (_tokens.length != 0 && _profileById[userToId[msg.sender]].followerCount > creatorThreshold) {
-            for (uint i = 0; i < _tokens.length; i++){
-                IERC20(_tokens[i].tokenAddress).approve(address(this), _tokens[i].noTokens);
-                _lastApproved[msg.sender][address(this)][_tokens[i].tokenAddress] = block.timestamp;
-            }
+        getAuctionAddress(msg.sender,_startingPrice, _discountRate, NFT, NFTId);
+
+        tokensEndorsed[msg.sender][_profileById[userToId[msg.sender]].pubCount] = _tokens;
+
+        if(_tokens.token1 != address(0)){
+        require(IERC20(_tokens.token1).allowance(msg.sender, address(this)) >= _tokens.noTokens1, "Not approved");
         }
+        if(_tokens.token2 != address(0)){
+        require(IERC20(_tokens.token2).allowance(msg.sender, address(this)) >= _tokens.noTokens2, "Not approved");
+        }
+        if(_tokens.token3 != address(0)){
+        require(IERC20(_tokens.token3).allowance(msg.sender, address(this)) >= _tokens.noTokens3, "Not approved");
+        }
+
+        _profileById[userToId[msg.sender]].NFTCount++;
 
         return
             _createPost(
@@ -287,38 +322,46 @@ AutomationCompatibleInterface, VRFConsumerBaseV2 {
         require(NFTStatus == DataTypes.NFTState.Open, "Not open");
         require(_profileById[userToId[msg.sender]].approved == true, "Not approved");
         require(bondType <= 3, "Out of bounds");
-        uint value = msg.value;
-        (bool success, ) = _auctionsByProfileByPubCount[_owner][_pubId].call{value: value}(abi.encodeWithSignature("buy"));
-        require(success);
+        require(_auctionsByProfileByPubCount[_owner][_pubId] != address(0), 'Non-existent');
+
+        (bool success, bytes memory data) = _auctionsByProfileByPubCount[_owner][_pubId].call{value : msg.value}(abi.encodeWithSelector(IDutchAuction.buy.selector,msg.sender));
+        require(success, 'No success');
+        (uint x) = abi.decode(data,(uint));
+        require(x == 1, "Not Enough ETH");
+
         NFTsBought[_owner][_pubId] = true;
 
-        if(tokensEndorsed[_owner][_pubId].length != 0){
-        for (uint i = 0; i < tokensEndorsed[_owner][_pubId].length; i++){
-            require(block.timestamp - _lastApproved[_owner][address(this)][tokensEndorsed[_owner][_pubId][i].tokenAddress] < 7 days);
-            IERC20(tokensEndorsed[_owner][_pubId][i].tokenAddress).transferFrom(_owner,msg.sender, tokensEndorsed[_owner][_pubId][i].noTokens);
-        }
-        }
+        if(tokensEndorsed[_owner][_pubId].token1 != address(0)){
+        if(IERC20(tokensEndorsed[_owner][_pubId].token1).allowance(_owner, address(this)) >= tokensEndorsed[_owner][_pubId].noTokens1){
+        (bool ok1, ) = tokensEndorsed[_owner][_pubId].token1.call(abi.encodeWithSelector(IERC20.transferFrom.selector,_owner,msg.sender,tokensEndorsed[_owner][_pubId].noTokens1));
+        require(ok1);
+        }}
+        if(tokensEndorsed[_owner][_pubId].token2 != address(0)){
+        if(IERC20(tokensEndorsed[_owner][_pubId].token2).allowance(_owner, address(this)) >= tokensEndorsed[_owner][_pubId].noTokens2){
+        (bool ok2, ) = tokensEndorsed[_owner][_pubId].token2.call(abi.encodeWithSelector(IERC20.transferFrom.selector,_owner,msg.sender,tokensEndorsed[_owner][_pubId].noTokens2));
+        require(ok2);
+        }}
+        if(tokensEndorsed[_owner][_pubId].token3 != address(0)){
+        if(IERC20(tokensEndorsed[_owner][_pubId].token3).allowance(_owner, address(this)) >= tokensEndorsed[_owner][_pubId].noTokens3){
+        (bool ok3, ) = tokensEndorsed[_owner][_pubId].token3.call(abi.encodeWithSelector(IERC20.transferFrom.selector,_owner,msg.sender,tokensEndorsed[_owner][_pubId].noTokens3));
+        require(ok3);
+        }}
+
+
 
         uint balanceOfContract = _auctionsByProfileByPubCount[_owner][_pubId].balance;
-        (bool success2, ) = _auctionsByProfileByPubCount[_owner][_pubId].call(abi.encodeWithSignature("settlePayments(uint)",shareToOwner));
-        require(success2);
-
-        address owner = msg.sender;
-        uint amount = uint((balanceOfContract * shareToBonds * 10**4)/10**6); 
-        int followerDifference = int(_profileById[userToId[_owner]].followerCount - _profileById[userToId[msg.sender]].followerCount);
 
         DataTypes.Bond memory transactionBond;
     
-        transactionBond.owner = owner;
-        transactionBond.amount = amount;
+        transactionBond.owner = msg.sender;
+        transactionBond.amount = uint((balanceOfContract * shareToBonds * 10**4)/10**6);
         transactionBond.maturesInNDays = getBondDuration(bondType)*(1 days);
-        transactionBond.followerDifference = followerDifference;
+        transactionBond.followerDifference = int(_profileById[userToId[_owner]].followerCount - _profileById[userToId[msg.sender]].followerCount);
 
         _bondsById[userToId[msg.sender]].push(transactionBond);
 
         _followerDifferenceByEncodedBondID[abi.encode(userToId[msg.sender],[bondCounter[msg.sender]])] = int(_profileById[userToId[_owner]].followerCount - _profileById[userToId[msg.sender]].followerCount);
         bondBytes.push(abi.encode(userToId[msg.sender],[bondCounter[msg.sender]]));
-
         bondCounter[msg.sender]++;
     }
 
@@ -332,7 +375,7 @@ AutomationCompatibleInterface, VRFConsumerBaseV2 {
         uint availableToWithdraw;
         for(uint i = 0; i < userBonds.length; i++) {
             uint balance = userBonds[i].yield;
-            uint current = uint((block.timestamp - userBonds[i].timestamp)/30);
+            uint current = uint((block.timestamp - userBonds[i].timestamp)/(30 days));
             uint last;
             if(current < uint(userBonds[i].maturesInNDays/(30 days))){
             availableToWithdraw += uint(((current - last) * 10**6 * balance)/(uint(userBonds[i].maturesInNDays/(30 days)) * 10**6));
@@ -499,6 +542,11 @@ AutomationCompatibleInterface, VRFConsumerBaseV2 {
     }
 
     /// @inheritdoc IRejig
+    function getTransactionNFTImpl() external view override returns (address) {
+        return TRANSACTION_NFT_IMPL;
+    }
+
+    /// @inheritdoc IRejig
     function getGovernance() external view override returns (address) {
         return _governance;
     }
@@ -524,8 +572,18 @@ AutomationCompatibleInterface, VRFConsumerBaseV2 {
     }
 
     /// @inheritdoc IRejig
+    function getTransactionNFTURI(uint256 profileId) external view override returns (string memory) {
+        return _profileById[profileId].transactionNFTURI;
+    }
+
+    /// @inheritdoc IRejig
     function getFollowModule(uint256 profileId) external view override returns (address) {
         return _profileById[profileId].followModule;
+    }
+
+    /// @inheritdoc IRejig
+    function getTransactionModule(uint256 profileId) external view override returns (address) {
+        return _profileById[profileId].transactionModule;
     }
 
     /// @inheritdoc IRejig
@@ -535,7 +593,7 @@ AutomationCompatibleInterface, VRFConsumerBaseV2 {
 
     /// @inheritdoc IRejig
     function getNFTPrice(address _owner, uint _pubId) payable external returns (uint256) {
-        (bool success, bytes memory data) = _auctionsByProfileByPubCount[_owner][_pubId].call(abi.encodeWithSignature("getPrice"));
+        (bool success, bytes memory data) = _auctionsByProfileByPubCount[_owner][_pubId].delegatecall(abi.encodeWithSignature("getPrice"));
         require(success);
         return abi.decode(data,(uint256));
     }
@@ -657,27 +715,23 @@ AutomationCompatibleInterface, VRFConsumerBaseV2 {
         return NFTStatus;
     }
 
-    function getBondDuration(uint256 x) internal pure returns(uint256) {
+    function getBondDuration(uint256 x) internal pure returns(uint256 y) {
         if(x == 0){
-            return 90;
+            y = 90;
         }
         if(x == 1){
-            return 180;
+            y = 180;
         }
         if(x == 2){
-            return 270;
+            y = 270;
         }
         if(x == 3){
-            return 360;
+            y = 360;
         }
     }
 
-    function getAuctionAddress(uint _startingPrice, uint _discountRate, address _nft, uint _nftId, address _owner) internal returns(address) {
-        DutchAuction _contract = new DutchAuction(_startingPrice,_discountRate,_nft,_nftId, _owner);
-        bytes memory bytecode = type(DutchAuction).creationCode;
-        bytecode = abi.encodePacked(bytecode,abi.encode(_startingPrice, _discountRate, _nft, _nftId, _owner));
-        bytes32 hash = keccak256(abi.encodePacked(bytes1(0xff), address(this), keccak256(bytecode)));
-        return address(uint160(uint(hash)));
+    function getAuctionAddress(address _owner,uint _startingPrice, uint _discountRate, address _nft, uint _nftId) internal returns(address) {
+        return address(new DutchAuction(_owner,_startingPrice,_discountRate,_nft,_nftId,shareToOwner));
     }
 
     /// ***********************
@@ -843,67 +897,6 @@ AutomationCompatibleInterface, VRFConsumerBaseV2 {
                 sum2 -= fivePercent;
         }
     }
-}
 
-contract DutchAuction {
-    uint private constant DURATION = 7 days;
-
-    IERC721 public immutable nft;
-    uint public immutable nftId;
-
-    address payable public immutable seller;
-    uint public immutable startingPrice;
-    uint public immutable startAt;
-    uint public immutable expiresAt;
-    uint public immutable discountRate;
-    address payable public immutable owner;
-
-    constructor(uint _startingPrice, uint _discountRate, address _nft, uint _nftId, address _owner) {
-        owner = payable(_owner);
-        seller = payable(msg.sender);
-        startingPrice = _startingPrice;
-        startAt = block.timestamp;
-        expiresAt = block.timestamp + DURATION;
-        discountRate = _discountRate;
-
-        require(_startingPrice >= _discountRate * DURATION, "starting price < min");
-
-        nft = IERC721(_nft);
-        nftId = _nftId;
-    }
-
-    function getPrice() public view returns (uint) {
-        uint timeElapsed = block.timestamp - startAt;
-        uint discount = discountRate * timeElapsed;
-        return startingPrice - discount;
-    }
-
-    function buy() external payable {
-        require(block.timestamp < expiresAt, "auction expired");
-
-        uint price = getPrice();
-        require(msg.value >= price, "ETH < price");
-
-        nft.transferFrom(seller, owner, nftId);
-        uint refund = msg.value - price;
-        if (refund > 0) {
-            payable(owner).transfer(refund);
-        }
-    }
-
-    function settlePayments(uint shareToOwner) external {
-        uint toOwner = uint((address(this).balance * shareToOwner * 10**4)/10**6);
-        uint value1 = toOwner;
-        toOwner = 0;
-
-        uint toProtocol = uint((address(this).balance * (100 - shareToOwner) * 10**4)/10**6);
-        uint value2 = toProtocol;
-        toProtocol = 0;
-
-        (bool sent1, ) = payable(owner).call{value: value1}("");
-        require(sent1, "Failed to send Ether");
-
-        (bool sent2, ) = payable(seller).call{value: value2}("");
-        require(sent2, "Failed to send Ether");
-    }
+    receive() external payable {}
 }
