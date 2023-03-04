@@ -14,6 +14,7 @@ import {
   MOCK_FOLLOW_NFT_URI,
   MOCK_PROFILE_HANDLE,
   MOCK_PROFILE_URI,
+  MOCK_TRANSACTION_NFT_URI,
   profileFollowModule,
   userAddress,
   userThreeAddress,
@@ -49,6 +50,8 @@ makeSuiteCleanRoom('Profile Follow Module', function () {
             followModule: profileFollowModule.address,
             followModuleInitData: EMPTY_BYTES,
             followNFTURI: MOCK_FOLLOW_NFT_URI,
+            transactionModule: ZERO_ADDRESS,
+            transactionNFTURI: MOCK_TRANSACTION_NFT_URI
           })
         ).to.not.be.reverted;
       });
@@ -82,6 +85,8 @@ makeSuiteCleanRoom('Profile Follow Module', function () {
             followModule: ZERO_ADDRESS,
             followModuleInitData: [],
             followNFTURI: MOCK_FOLLOW_NFT_URI,
+            transactionModule: ZERO_ADDRESS,
+            transactionNFTURI: MOCK_TRANSACTION_NFT_URI
           })
         ).to.not.be.reverted;
         await expect(rejig.connect(userTwo).burn(secondProfileId)).to.not.be.reverted;
@@ -107,6 +112,8 @@ makeSuiteCleanRoom('Profile Follow Module', function () {
             followModule: ZERO_ADDRESS,
             followModuleInitData: [],
             followNFTURI: MOCK_FOLLOW_NFT_URI,
+            transactionModule: ZERO_ADDRESS,
+            transactionNFTURI: MOCK_TRANSACTION_NFT_URI
           })
         ).to.not.be.reverted;
         await expect(
@@ -130,6 +137,8 @@ makeSuiteCleanRoom('Profile Follow Module', function () {
             followModule: ZERO_ADDRESS,
             followModuleInitData: [],
             followNFTURI: MOCK_FOLLOW_NFT_URI,
+            transactionModule: ZERO_ADDRESS,
+            transactionNFTURI: MOCK_TRANSACTION_NFT_URI
           })
         ).to.not.be.reverted;
         await expect(
@@ -172,6 +181,8 @@ makeSuiteCleanRoom('Profile Follow Module', function () {
           followModule: profileFollowModule.address,
           followModuleInitData: EMPTY_BYTES,
           followNFTURI: MOCK_FOLLOW_NFT_URI,
+          transactionModule: ZERO_ADDRESS,
+          transactionNFTURI: MOCK_TRANSACTION_NFT_URI
         });
 
         const receipt = await waitForTx(tx);
@@ -200,6 +211,8 @@ makeSuiteCleanRoom('Profile Follow Module', function () {
             followModule: ZERO_ADDRESS,
             followModuleInitData: [],
             followNFTURI: MOCK_FOLLOW_NFT_URI,
+            transactionModule: ZERO_ADDRESS,
+            transactionNFTURI: MOCK_TRANSACTION_NFT_URI
           })
         ).to.not.be.reverted;
 
@@ -231,6 +244,8 @@ makeSuiteCleanRoom('Profile Follow Module', function () {
             followModule: profileFollowModule.address,
             followModuleInitData: EMPTY_BYTES,
             followNFTURI: MOCK_FOLLOW_NFT_URI,
+            transactionModule: ZERO_ADDRESS,
+            transactionNFTURI: MOCK_TRANSACTION_NFT_URI
           })
         ).to.not.be.reverted;
       });
@@ -244,6 +259,8 @@ makeSuiteCleanRoom('Profile Follow Module', function () {
             followModule: ZERO_ADDRESS,
             followModuleInitData: [],
             followNFTURI: MOCK_FOLLOW_NFT_URI,
+            transactionModule: ZERO_ADDRESS,
+            transactionNFTURI: MOCK_TRANSACTION_NFT_URI
           })
         ).to.not.be.reverted;
         const followerProfileId = FIRST_PROFILE_ID + 1;
