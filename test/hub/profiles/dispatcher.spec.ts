@@ -17,6 +17,7 @@ import {
   userTwo,
   userTwoAddress,
   abiCoder,
+  MOCK_TRANSACTION_NFT_URI,
 } from '../../__setup.spec';
 
 makeSuiteCleanRoom('Dispatcher Functionality', function () {
@@ -30,6 +31,8 @@ makeSuiteCleanRoom('Dispatcher Functionality', function () {
           followModule: ZERO_ADDRESS,
           followModuleInitData: [],
           followNFTURI: MOCK_FOLLOW_NFT_URI,
+          transactionModule: ZERO_ADDRESS,
+          transactionNFTURI: MOCK_TRANSACTION_NFT_URI
         })
       ).to.not.be.reverted;
     });
@@ -109,6 +112,8 @@ makeSuiteCleanRoom('Dispatcher Functionality', function () {
           followModule: ZERO_ADDRESS,
           followModuleInitData: [],
           followNFTURI: MOCK_FOLLOW_NFT_URI,
+          transactionModule: ZERO_ADDRESS,
+          transactionNFTURI: MOCK_TRANSACTION_NFT_URI
         })
       ).to.not.be.reverted;
     });
