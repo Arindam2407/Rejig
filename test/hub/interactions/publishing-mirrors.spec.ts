@@ -20,6 +20,7 @@ import {
   userAddress,
   userTwo,
   userTwoAddress,
+  MOCK_TRANSACTION_NFT_URI,
 } from '../../__setup.spec';
 
 makeSuiteCleanRoom('Publishing mirrors', function () {
@@ -33,6 +34,8 @@ makeSuiteCleanRoom('Publishing mirrors', function () {
           followModule: ZERO_ADDRESS,
           followModuleInitData: [],
           followNFTURI: MOCK_FOLLOW_NFT_URI,
+          transactionModule: ZERO_ADDRESS,
+          transactionNFTURI: MOCK_TRANSACTION_NFT_URI
         })
       ).to.not.be.reverted;
 
