@@ -125,12 +125,21 @@ interface IRejig {
         address to
     ) external;
 
+    function emitTransactionNFTTransferEvent(
+        uint256 profileId,
+        uint256 transactionNFTId,
+        address from,
+        address to
+    ) external;
+
     /**
      * @notice Returns the follow NFT implementation address.
      *
      * @return address The follow NFT implementation address.
      */
     function getFollowNFTImpl() external view returns (address);
+
+    function getTransactionNFTImpl() external view returns (address);
 
     /**
      * @notice Returns the currently configured governance address.
@@ -174,6 +183,7 @@ interface IRejig {
      * @return string The followNFT URI associated with the given profile.
      */
     function getFollowNFTURI(uint256 profileId) external view returns (string memory);
+    function getTransactionNFTURI(uint256 profileId) external view returns (string memory);
 
     /**
      * @notice Returns the follow module associated witha  given profile, if any.
@@ -184,6 +194,7 @@ interface IRejig {
      */
     function getFollowModule(uint256 profileId) external view returns (address);
 
+    function getTransactionModule(uint256 profileId) external view returns (address);
     /**
      * @notice Returns the reference module associated witha  given profile, if any.
      *
@@ -332,7 +343,7 @@ interface IRejig {
     function postNFT(DataTypes.PostData calldata vars, 
                   uint _startingPrice, 
                   uint _discountRate, 
-                  DataTypes.TokenandNumber[] memory _tokens) 
+                  DataTypes.EndorsedTokenData calldata _tokens) 
                   external 
                   returns (uint256);
     
@@ -359,3 +370,4 @@ interface IRejig {
         returns (uint256);
 
 }
+
