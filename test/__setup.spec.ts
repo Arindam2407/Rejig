@@ -114,6 +114,7 @@ export let rejigImpl: Rejig;
 export let rejig: Rejig;
 export let rejigERC20: RejigERC20;
 export let rejigERC20Address: string;
+export let transactionNFTImplAddress: string;
 export let currency: Currency;
 export let abiCoder: AbiCoder;
 export let mockModuleData: BytesLike;
@@ -270,4 +271,6 @@ before(async function () {
 
   const rejigERC20 = await new RejigERC20__factory(user).deploy(rejig.address,1000000);
   rejigERC20Address = await rejigERC20.address;
+
+  transactionNFTImplAddress = await transactionNFTImpl.address;
 });
