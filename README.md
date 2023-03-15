@@ -6,7 +6,7 @@ REJIG APP
 
 Created by Arindam Singh
 
--Users will be able to create profiles just like in the Lens protocol - no need for whitelisting with the stipulation that one address can create only one contract.
+-Users will be able to create profiles just like in the Lens protocol - no need for whitelisting with the stipulation that one address can create only one account.
 
 -There is no collect functionality.
 
