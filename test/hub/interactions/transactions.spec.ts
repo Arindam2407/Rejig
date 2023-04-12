@@ -86,10 +86,10 @@ makeSuiteCleanRoom('Transactions', function () {
           await network.provider.request({ method: "evm_mine", params: [] });
         });
         it('Approved users should not be able to buy NFTs without sending enough ETH', async function () {
-          await expect(rejig.connect(userTwo).buyNFT(userAddress,0,2)).to.be.revertedWith(ERRORS.NOT_ENOUGH_ETH);
+          await expect(rejig.connect(userTwo).buyNFT(userAddress,0)).to.be.revertedWith(ERRORS.NOT_ENOUGH_ETH);
         });
         it('Approved users should be able to buy NFTs with sending enough ETH and payments should be settled', async function () {
-          await expect(rejig.connect(userTwo).buyNFT(userAddress,0,2, {value: ethers.utils.parseEther('1')})).to.not.be.reverted;
+          await expect(rejig.connect(userTwo).buyNFT(userAddress,0,{value: ethers.utils.parseEther('1')})).to.not.be.reverted;
         });
     });
 });
