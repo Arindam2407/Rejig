@@ -12,7 +12,6 @@ library Constants {
     uint8 internal constant MAX_TOKENS_ENDORSED = 3;
     uint256 internal constant REVISION = 1;
     uint256 internal constant DURATION = 7 days;
-    uint256 internal constant COEFFICIENT = 15;
     uint256 internal constant YIELD_COEF = 95;
     uint256 internal constant TIERS = 5;
     uint256 internal constant INTERVAL = 24 hours;
