@@ -316,12 +316,10 @@ AutomationCompatibleInterface, VRFConsumerBaseV2 {
      *
      * @param _owner The seller/owner address of the NFT.
      * @param _pubId The publication Id of the NFT.
-     * @param bondType Type of bond (according to duration)
      */
-    function buyNFT(address _owner, uint _pubId, uint bondType) payable external  {
+    function buyNFT(address _owner, uint _pubId) payable external  {
         require(NFTStatus == DataTypes.NFTState.Open, "Not open");
         require(_profileById[userToId[msg.sender]].approved == true, "Not approved");
-        require(bondType <= 3, "Out of bounds");
         require(_auctionsByProfileByPubCount[_owner][_pubId] != address(0), 'Non-existent');
 
         (bool success, bytes memory data) = _auctionsByProfileByPubCount[_owner][_pubId].call{value : msg.value}(abi.encodeWithSelector(IDutchAuction.buy.selector,msg.sender));
@@ -347,15 +345,12 @@ AutomationCompatibleInterface, VRFConsumerBaseV2 {
         require(ok3);
         }}
 
-
-
         uint balanceOfContract = _auctionsByProfileByPubCount[_owner][_pubId].balance;
 
         DataTypes.Bond memory transactionBond;
     
         transactionBond.owner = msg.sender;
         transactionBond.amount = uint((balanceOfContract * shareToBonds * 10**4)/10**6);
-        transactionBond.maturesInNDays = getBondDuration(bondType)*(1 days);
         transactionBond.followerDifference = int(_profileById[userToId[_owner]].followerCount - _profileById[userToId[msg.sender]].followerCount);
 
         _bondsById[userToId[msg.sender]].push(transactionBond);
@@ -365,25 +360,23 @@ AutomationCompatibleInterface, VRFConsumerBaseV2 {
         bondCounter[msg.sender]++;
     }
 
+    function getCoefficient(uint _days) internal pure returns(uint) {
+        return (15*(10**11))/(1+2^((900000-10000*(_days))/200000));
+        //  1.5/(1+e^((-0.1)(_days-360)))
+    } 
+
     /**
      * @dev The function allows users to withdraw their ETH funds remaining with the Protocol.
      */
-    function withdrawFunds() public {
+    function withdrawFunds(uint[] memory _withdrawals) public {
         require(NFTStatus == DataTypes.NFTState.Open);
         require(bondCounter[msg.sender] != 0);
         DataTypes.Bond[] memory userBonds = _bondsById[userToId[msg.sender]];
         uint availableToWithdraw;
-        for(uint i = 0; i < userBonds.length; i++) {
-            uint balance = userBonds[i].yield;
-            uint current = uint((block.timestamp - userBonds[i].timestamp)/(30 days));
-            uint last;
-            if(current < uint(userBonds[i].maturesInNDays/(30 days))){
-            availableToWithdraw += uint(((current - last) * 10**6 * balance)/(uint(userBonds[i].maturesInNDays/(30 days)) * 10**6));
-            userBonds[i].yield -= uint(((current - last) * 10**6 * balance)/(uint(userBonds[i].maturesInNDays/(30 days)) * 10**6));
-            last = current;
-            } else {
-                availableToWithdraw += userBonds[i].yield;
-            }
+        for(uint i = 0; i < _withdrawals.length; i++) {
+            require(bondCounter[msg.sender] + 1 > _withdrawals[i]);
+            uint maturity = uint((block.timestamp - userBonds[_withdrawals[i]].timestamp)/(1 days));
+            availableToWithdraw += (userBonds[_withdrawals[i]].yield*getCoefficient(maturity))/10**12;
         }
 
         uint withdrawalAmount = availableToWithdraw;
@@ -391,6 +384,7 @@ AutomationCompatibleInterface, VRFConsumerBaseV2 {
 
         (bool sent, ) = payable(msg.sender).call{value: withdrawalAmount}("");
         require(sent, "Failed to send Ether");
+
     }
 
     /// ***********************
@@ -715,20 +709,20 @@ AutomationCompatibleInterface, VRFConsumerBaseV2 {
         return NFTStatus;
     }
 
-    function getBondDuration(uint256 x) internal pure returns(uint256 y) {
-        if(x == 0){
-            y = 90;
-        }
-        if(x == 1){
-            y = 180;
-        }
-        if(x == 2){
-            y = 270;
-        }
-        if(x == 3){
-            y = 360;
-        }
-    }
+    // function getBondDuration(uint256 x) internal pure returns(uint256 y) {
+    //     if(x == 0){
+    //         y = 90;
+    //     }
+    //     if(x == 1){
+    //         y = 180;
+    //     }
+    //     if(x == 2){
+    //         y = 270;
+    //     }
+    //     if(x == 3){
+    //         y = 360;
+    //     }
+    // }
 
     function getAuctionAddress(address _owner,uint _startingPrice, uint _discountRate, address _nft, uint _nftId) internal returns(address) {
         return address(new DutchAuction(_owner,_startingPrice,_discountRate,_nft,_nftId,shareToOwner));
@@ -873,25 +867,24 @@ AutomationCompatibleInterface, VRFConsumerBaseV2 {
             sum2 += _bondsById[id][count].amount;
             uint rep;
             if (sum2 <= fivePercent){
-            _loopDistribution(id,count,rep,sum2,fivePercent,true);
+            _loopDistribution(id,count,rep,sum2,fivePercent,false);
             }
             else {
                 while (sum2 > fivePercent){
-                _loopDistribution(id,count,rep,sum2,fivePercent,false);
-                }
                 _loopDistribution(id,count,rep,sum2,fivePercent,true);
+                }
+                _loopDistribution(id,count,rep,sum2,fivePercent,false);
             }
-
         }
     }
 
     function _loopDistribution(uint id, uint count, uint rep, uint sum2, uint fivePercent, bool exceeded) internal {
-        if (exceeded) {
-                _bondsById[id][count].yield += uint((_bondsById[id][count].amount*COEFFICIENT*(YIELD_COEF**(rep)*(100)**(TIERS - rep)))/(10**(2*TIERS + 1)));
+        if (exceeded == false) {
+                _bondsById[id][count].yield += uint((_bondsById[id][count].amount*(YIELD_COEF**(rep)*(100)**(TIERS - rep)))/(100**TIERS));
                 _bondsById[id][count].amount = 0; 
         } else {
                 uint currentYield = _bondsById[id][count].amount - (sum2 - fivePercent);
-                _bondsById[id][count].yield += uint((currentYield*COEFFICIENT*(YIELD_COEF**(rep)*(100)**(TIERS - rep)))/(10**(2*TIERS + 1)));
+                _bondsById[id][count].yield += uint((currentYield*(YIELD_COEF**(rep)*(100)**(TIERS - rep)))/(100**TIERS));
                 _bondsById[id][count].amount -= currentYield;
                 rep++;
                 sum2 -= fivePercent;
