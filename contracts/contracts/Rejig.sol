@@ -80,7 +80,7 @@ AutomationCompatibleInterface, VRFConsumerBaseV2 {
      * @dev This modifier reverts if the caller address has already created a profile.
      */
     modifier profileNotInitiated {
-        require(profileInitiated[msg.sender] == false);
+        require(profileInitiated[msg.sender] == false, "Profile Already Created");
         _;
     }
 
@@ -93,6 +93,7 @@ AutomationCompatibleInterface, VRFConsumerBaseV2 {
      * @param gasLane The chainlink gas lane.
      * @param callbackGasLimit The chainlink callback gas limit.
      * @param followNFTImpl The follow NFT implementation address.
+     * @param transactionNFTImpl The transaction NFT implementation address.
      */
     constructor(address vrfCoordinatorV2,
         uint64 subscriptionId,
@@ -104,7 +105,7 @@ AutomationCompatibleInterface, VRFConsumerBaseV2 {
         i_callbackGasLimit = callbackGasLimit;
         initializationTimestamp = block.timestamp; // time when the contract is created.
         minFollowerCount = 3; // minimum follower count to buy post NFTs.
-        creatorThreshold = 5; // minimum follower count to create post NFTs.
+        creatorThreshold = 10; // minimum follower count to create post NFTs.
         shareToOwner = 50; // share of NFT sale money that goes to the seller/owner.
         shareToProtocol = 20; // share of NFT sale money that goes directly to the Rejig Protocol.
         shareToBonds = 100 - shareToOwner - shareToProtocol; // share of NFT sale money that is used to issue bonds to buyers.
@@ -144,6 +145,7 @@ AutomationCompatibleInterface, VRFConsumerBaseV2 {
         unchecked {
             uint256 profileId = ++_profileCounter;
             userToId[msg.sender] = _profileCounter;
+            idToUser[_profileCounter] = msg.sender;
             _mint(vars.to, profileId);
             PublishingLogic.createProfile(
                 vars,
@@ -166,6 +168,7 @@ AutomationCompatibleInterface, VRFConsumerBaseV2 {
     function burn(uint256 tokenId) public override whenNotPaused {
         super.burn(tokenId);
         _clearHandleHash(tokenId);
+        profileInitiated[msg.sender] == false;
     }
 
     /// @inheritdoc IRejig
@@ -204,10 +207,13 @@ AutomationCompatibleInterface, VRFConsumerBaseV2 {
         returns (uint256[] memory)
     {
         for(uint i = 0; i < profileIds.length; i++) {
+            require(idToFollowerBools[profileIds[i]][msg.sender] == false, "Can't follow again");
+            require(idToUser[profileIds[i]] != msg.sender, "Can't follow self");
             _profileById[profileIds[i]].followerCount++;
             if (_profileById[profileIds[i]].followerCount >= minFollowerCount){
                 _profileById[profileIds[i]].approved = true;
             }
+            idToFollowerBools[profileIds[i]][msg.sender] = true;
         }
 
         return
@@ -252,16 +258,16 @@ AutomationCompatibleInterface, VRFConsumerBaseV2 {
         _validateCallerIsProfileOwnerOrDispatcher(vars.profileId);
 
         uint256 NFTId = uint256(keccak256(abi.encode(userToId[msg.sender],_profileById[userToId[msg.sender]].NFTCount)));
-        _pubByIdByProfile[userToId[msg.sender]][_profileById[userToId[msg.sender]].pubCount].associatedNFTId = NFTId;
+        _pubByIdByProfile[userToId[msg.sender]][_profileById[userToId[msg.sender]].pubCount + 1].associatedNFTId = NFTId;
 
         InteractionLogic.transact(msg.sender, address(this), NFTId, _profileById, userToId);
 
         address NFT = _profileById[userToId[msg.sender]].transactionNFT;
 
-        _auctionsByProfileByPubCount[msg.sender][_profileById[userToId[msg.sender]].pubCount] = 
+        _auctionsByProfileByPubCount[msg.sender][_profileById[userToId[msg.sender]].pubCount + 1] = 
         getAuctionAddress(msg.sender,_startingPrice, _discountRate, NFT, NFTId);
 
-        tokensEndorsed[msg.sender][_profileById[userToId[msg.sender]].pubCount] = _tokens;
+        tokensEndorsed[msg.sender][_profileById[userToId[msg.sender]].pubCount + 1] = _tokens;
 
         if(_tokens.token1 != address(0)){
         require(IERC20(_tokens.token1).allowance(msg.sender, address(this)) >= _tokens.noTokens1, "Not approved");
@@ -314,69 +320,73 @@ AutomationCompatibleInterface, VRFConsumerBaseV2 {
     /**
      * @dev The function allows users to buy post NFTs.
      *
-     * @param _owner The seller/owner address of the NFT.
+     * @param _profileId The seller/owner id of the NFT.
      * @param _pubId The publication Id of the NFT.
      */
-    function buyNFT(address _owner, uint _pubId) payable external  {
+    function buyNFT(uint _profileId, uint _pubId) payable external  {
         require(NFTStatus == DataTypes.NFTState.Open, "Not open");
         require(_profileById[userToId[msg.sender]].approved == true, "Not approved");
-        require(_auctionsByProfileByPubCount[_owner][_pubId] != address(0), 'Non-existent');
+        require(_auctionsByProfileByPubCount[idToUser[_profileId]][_pubId] != address(0), 'Non-existent');
 
-        (bool success, bytes memory data) = _auctionsByProfileByPubCount[_owner][_pubId].call{value : msg.value}(abi.encodeWithSelector(IDutchAuction.buy.selector,msg.sender));
+        (bool success, bytes memory data) = _auctionsByProfileByPubCount[idToUser[_profileId]][_pubId].call{value : msg.value}(abi.encodeWithSelector(IDutchAuction.buy.selector,msg.sender));
         require(success, 'No success');
         (uint x) = abi.decode(data,(uint));
         require(x == 1, "Not Enough ETH");
 
-        NFTsBought[_owner][_pubId] = true;
+        NFTsBought[idToUser[_profileId]][_pubId] = true;
 
-        if(tokensEndorsed[_owner][_pubId].token1 != address(0)){
-        if(IERC20(tokensEndorsed[_owner][_pubId].token1).allowance(_owner, address(this)) >= tokensEndorsed[_owner][_pubId].noTokens1){
-        (bool ok1, ) = tokensEndorsed[_owner][_pubId].token1.call(abi.encodeWithSelector(IERC20.transferFrom.selector,_owner,msg.sender,tokensEndorsed[_owner][_pubId].noTokens1));
+        if(tokensEndorsed[idToUser[_profileId]][_pubId].token1 != address(0)){
+        if(IERC20(tokensEndorsed[idToUser[_profileId]][_pubId].token1).allowance(idToUser[_profileId], address(this)) >= tokensEndorsed[idToUser[_profileId]][_pubId].noTokens1){
+        (bool ok1, ) = tokensEndorsed[idToUser[_profileId]][_pubId].token1.call(abi.encodeWithSelector(IERC20.transferFrom.selector,idToUser[_profileId],msg.sender,tokensEndorsed[idToUser[_profileId]][_pubId].noTokens1));
         require(ok1);
         }}
-        if(tokensEndorsed[_owner][_pubId].token2 != address(0)){
-        if(IERC20(tokensEndorsed[_owner][_pubId].token2).allowance(_owner, address(this)) >= tokensEndorsed[_owner][_pubId].noTokens2){
-        (bool ok2, ) = tokensEndorsed[_owner][_pubId].token2.call(abi.encodeWithSelector(IERC20.transferFrom.selector,_owner,msg.sender,tokensEndorsed[_owner][_pubId].noTokens2));
+        if(tokensEndorsed[idToUser[_profileId]][_pubId].token2 != address(0)){
+        if(IERC20(tokensEndorsed[idToUser[_profileId]][_pubId].token2).allowance(idToUser[_profileId], address(this)) >= tokensEndorsed[idToUser[_profileId]][_pubId].noTokens2){
+        (bool ok2, ) = tokensEndorsed[idToUser[_profileId]][_pubId].token2.call(abi.encodeWithSelector(IERC20.transferFrom.selector,idToUser[_profileId],msg.sender,tokensEndorsed[idToUser[_profileId]][_pubId].noTokens2));
         require(ok2);
         }}
-        if(tokensEndorsed[_owner][_pubId].token3 != address(0)){
-        if(IERC20(tokensEndorsed[_owner][_pubId].token3).allowance(_owner, address(this)) >= tokensEndorsed[_owner][_pubId].noTokens3){
-        (bool ok3, ) = tokensEndorsed[_owner][_pubId].token3.call(abi.encodeWithSelector(IERC20.transferFrom.selector,_owner,msg.sender,tokensEndorsed[_owner][_pubId].noTokens3));
+        if(tokensEndorsed[idToUser[_profileId]][_pubId].token3 != address(0)){
+        if(IERC20(tokensEndorsed[idToUser[_profileId]][_pubId].token3).allowance(idToUser[_profileId], address(this)) >= tokensEndorsed[idToUser[_profileId]][_pubId].noTokens3){
+        (bool ok3, ) = tokensEndorsed[idToUser[_profileId]][_pubId].token3.call(abi.encodeWithSelector(IERC20.transferFrom.selector,idToUser[_profileId],msg.sender,tokensEndorsed[idToUser[_profileId]][_pubId].noTokens3));
         require(ok3);
         }}
 
-        uint balanceOfContract = _auctionsByProfileByPubCount[_owner][_pubId].balance;
+        uint balanceOfContract = _auctionsByProfileByPubCount[idToUser[_profileId]][_pubId].balance;
 
         DataTypes.Bond memory transactionBond;
     
         transactionBond.owner = msg.sender;
         transactionBond.amount = uint((balanceOfContract * shareToBonds * 10**4)/10**6);
-        transactionBond.followerDifference = int(_profileById[userToId[_owner]].followerCount - _profileById[userToId[msg.sender]].followerCount);
+        transactionBond.followerDifference = int(_profileById[userToId[idToUser[_profileId]]].followerCount - _profileById[userToId[msg.sender]].followerCount);
 
-        _bondsById[userToId[msg.sender]].push(transactionBond);
+        _bondsById[userToId[msg.sender]][bondCounter[msg.sender]] = transactionBond;
 
-        _followerDifferenceByEncodedBondID[abi.encode(userToId[msg.sender],[bondCounter[msg.sender]])] = int(_profileById[userToId[_owner]].followerCount - _profileById[userToId[msg.sender]].followerCount);
+        _followerDifferenceByEncodedBondID[abi.encode(userToId[msg.sender],[bondCounter[msg.sender]])] = int(_profileById[userToId[idToUser[_profileId]]].followerCount - _profileById[userToId[msg.sender]].followerCount);
         bondBytes.push(abi.encode(userToId[msg.sender],[bondCounter[msg.sender]]));
         bondCounter[msg.sender]++;
     }
 
     function getCoefficient(uint _days) internal pure returns(uint) {
-        return (15*(10**11))/(1+2^((900000-10000*(_days))/200000));
-        //  1.5/(1+e^((-0.1)(_days-360)))
+        if (_days < 90){
+            return 5*_days;
+        } if (_days > 89 && _days < 360) {
+            1000 + (_days - 90)*2;
+        } else {
+            1000 + (_days - 90)*2 + (_days - 360)/10;
+        }
     } 
 
     /**
      * @dev The function allows users to withdraw their ETH funds remaining with the Protocol.
      */
-    function withdrawFunds(uint[] memory _withdrawals) public {
+    function withdrawFunds(uint[] calldata _withdrawals) external {
         require(NFTStatus == DataTypes.NFTState.Open);
         require(bondCounter[msg.sender] != 0);
-        DataTypes.Bond[] memory userBonds = _bondsById[userToId[msg.sender]];
         uint availableToWithdraw;
         for(uint i = 0; i < _withdrawals.length; i++) {
             require(bondCounter[msg.sender] + 1 > _withdrawals[i]);
-            uint maturity = uint((block.timestamp - userBonds[_withdrawals[i]].timestamp)/(1 days));
-            availableToWithdraw += (userBonds[_withdrawals[i]].yield*getCoefficient(maturity))/10**12;
+            uint maturity = uint((block.timestamp - _bondsById[userToId[msg.sender]][_withdrawals[i]].timestamp)/(1 days));
+            availableToWithdraw += (_bondsById[userToId[msg.sender]][_withdrawals[i]].yield*getCoefficient(maturity))/1000;
         }
 
         uint withdrawalAmount = availableToWithdraw;
@@ -546,6 +556,11 @@ AutomationCompatibleInterface, VRFConsumerBaseV2 {
     }
 
     /// @inheritdoc IRejig
+    function getIdFromUser(address user) external view override returns (uint) {
+        return userToId[user];
+    }
+
+    /// @inheritdoc IRejig
     function getDispatcher(uint256 profileId) external view override returns (address) {
         return _dispatcherByProfile[profileId];
     }
@@ -690,14 +705,14 @@ AutomationCompatibleInterface, VRFConsumerBaseV2 {
      * @param - The address of the deployer.
      * @param - The publication Id of the NFT post.
      */
-    function postTokenURI(address _deployer, uint _pubId) public view returns(string memory) {
+    function postTokenURI(uint _profileId, uint _pubId) public view returns(string memory) {
         return
             PostNFTTokenURILogic.getPostNFTTokenURI(
-                userToId[_deployer],
-                _pubByIdByProfile[userToId[_deployer]][_pubId].associatedNFTId,
-                _pubByIdByProfile[userToId[_deployer]][_pubId].contentURI,
-                _deployer,
-                _profileById[userToId[_deployer]].handle
+                _profileId,
+                _pubByIdByProfile[_profileId][_pubId].associatedNFTId,
+                _pubByIdByProfile[_profileId][_pubId].contentURI,
+                idToUser[_profileId],
+                _profileById[_profileId].handle
             );
     }
 
@@ -709,23 +724,20 @@ AutomationCompatibleInterface, VRFConsumerBaseV2 {
         return NFTStatus;
     }
 
-    // function getBondDuration(uint256 x) internal pure returns(uint256 y) {
-    //     if(x == 0){
-    //         y = 90;
-    //     }
-    //     if(x == 1){
-    //         y = 180;
-    //     }
-    //     if(x == 2){
-    //         y = 270;
-    //     }
-    //     if(x == 3){
-    //         y = 360;
-    //     }
-    // }
-
     function getAuctionAddress(address _owner,uint _startingPrice, uint _discountRate, address _nft, uint _nftId) internal returns(address) {
         return address(new DutchAuction(_owner,_startingPrice,_discountRate,_nft,_nftId,shareToOwner));
+    }
+
+    function getAvailableToWithdraw(uint[] calldata _withdrawals) external view override returns(uint){
+        require(bondCounter[msg.sender] != 0);
+        uint availableToWithdraw;
+        for(uint i = 0; i < _withdrawals.length; i++) {
+            require(bondCounter[msg.sender] + 1 > _withdrawals[i]);
+            uint maturity = uint((block.timestamp - _bondsById[userToId[msg.sender]][_withdrawals[i]].timestamp)/(1 days));
+            availableToWithdraw += (_bondsById[userToId[msg.sender]][_withdrawals[i]].yield*getCoefficient(maturity))/10**12;
+        }
+
+        return availableToWithdraw;
     }
 
     /// ***********************
@@ -892,4 +904,5 @@ AutomationCompatibleInterface, VRFConsumerBaseV2 {
     }
 
     receive() external payable {}
+
 }
