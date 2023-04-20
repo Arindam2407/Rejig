@@ -149,6 +149,13 @@ interface IRejig {
     function getGovernance() external view returns (address);
 
     /**
+     * @notice Returns the currently configured governance address.
+     *
+     * @param  user The address of the user.
+     */
+    function getIdFromUser(address user) external view returns (uint);
+
+    /**
      * @notice Returns the dispatcher associated with a profile.
      *
      * @param profileId The token ID of the profile to query the dispatcher for.
@@ -309,6 +316,8 @@ interface IRejig {
      */
     function getNFTPrice(address _owner, uint _pubId) payable external returns (uint256);
 
+    function getAvailableToWithdraw(uint[] calldata _withdrawals) external view returns(uint);
+
     /**
      * @notice Follows the given profiles, executing each profile's follow module logic (if any) and minting followNFTs to the caller.
      *
@@ -370,4 +379,3 @@ interface IRejig {
         returns (uint256);
 
 }
-
