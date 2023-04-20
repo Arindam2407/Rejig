@@ -188,7 +188,6 @@ library DataTypes {
         uint timestamp;
         uint amount;
         uint yield;
-        uint maturesInNDays;
         int followerDifference;
     }
 
