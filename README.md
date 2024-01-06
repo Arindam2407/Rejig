@@ -1,5 +1,7 @@
 REJIG APP
 
+[See Frontend Implementation](https://github.com/Arindam2407/Rejig-Frontend)
+
 - A fork of Lens Protocol
 - Focus on NFT Auctions
 
